@@ -987,7 +987,15 @@ export default function Home() {
           <div className="left-content">
             {/* Input */}
             <div className="input-group">
-              <label className="input-label">Japanese phrase</label>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <label className="input-label" style={{ margin: 0 }}>Japanese phrase</label>
+                <button
+                  className="btn btn-surface btn-small"
+                  onClick={toggleSaved}
+                >
+                  Saved ({savedPhrases.length})
+                </button>
+              </div>
               <textarea
                 className="text-input"
                 rows={2}
@@ -1033,13 +1041,6 @@ export default function Home() {
                 style={{ display: "none" }}
                 onChange={handleScreenshot}
               />
-              <button
-                  className="btn btn-surface btn-icon"
-                  onClick={toggleSaved}
-                  title="Saved phrases"
-                >
-                  <Icon.Clock />
-                </button>
             </div>
 
             {/* Screenshot phrases */}
