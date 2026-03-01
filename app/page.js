@@ -657,13 +657,8 @@ function formatChatMessage(text) {
 // ─── App ───────────────────────────────────────────────────────
 export default function Home() {
   // Auth state
-  const [user, setUser] = useState(null); // null = loading, 'guest' = guest, string = username
+  const [user, setUser] = useState(null); // null = loading, string = username
   const [authChecked, setAuthChecked] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [loginUser, setLoginUser] = useState("");
-  const [loginPass, setLoginPass] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
 
   // Input state
   const [inputText, setInputText] = useState("");
@@ -709,27 +704,23 @@ export default function Home() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // ── Auth check on mount ──
+  // ── Auth check on mount — auto-login ──
   useEffect(() => {
     fetch("/api/login")
       .then((r) => r.json())
       .then((data) => {
-        if (data.user) {
-          setUser(data.user);
-        } else {
-          setShowLogin(true);
-        }
+        setUser(data.user || "default");
         setAuthChecked(true);
       })
       .catch(() => {
-        setShowLogin(true);
+        setUser("default");
         setAuthChecked(true);
       });
   }, []);
 
-  // ── Load saved phrases when user logs in ──
+  // ── Load saved phrases when user is set ──
   useEffect(() => {
-    if (user && user !== "guest") {
+    if (user) {
       loadHistory();
     }
   }, [user]);
@@ -740,45 +731,6 @@ export default function Home() {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [chatMessages, chatLoading]);
-
-  // ── Login ──
-  async function handleLogin(e) {
-    e.preventDefault();
-    setLoginError("");
-    setLoginLoading(true);
-    try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: loginUser.trim().toLowerCase(), password: loginPass }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUser(data.user);
-        setShowLogin(false);
-        setLoginUser("");
-        setLoginPass("");
-      } else {
-        setLoginError(data.error || "Invalid credentials");
-      }
-    } catch {
-      setLoginError("Connection failed");
-    }
-    setLoginLoading(false);
-  }
-
-  function enterGuest() {
-    setUser("guest");
-    setShowLogin(false);
-  }
-
-  async function handleLogout() {
-    await fetch("/api/login", { method: "DELETE" });
-    setUser(null);
-    setSavedPhrases([]);
-    setShowLogin(true);
-    resetState();
-  }
 
   // ── Reset ──
   function resetState() {
@@ -900,7 +852,7 @@ export default function Home() {
   }
 
   async function savePhrase() {
-    if (!currentPhrase || user === "guest") return;
+    if (!currentPhrase) return;
     const entry = {
       id: Date.now().toString(),
       japanese: currentPhrase.japanese,
@@ -1017,64 +969,6 @@ export default function Home() {
     );
   }
 
-  if (showLogin) {
-    return (
-      <>
-        <style dangerouslySetInnerHTML={{ __html: getStyles() }} />
-        <div className="login-overlay">
-          <div className="login-card">
-            <div className="login-title">
-              Japanese <span>Grammar</span> Buddy
-            </div>
-            <div className="login-subtitle">Your AI companion for Japanese learning</div>
-
-            {loginError && <div className="login-error">{loginError}</div>}
-
-            <form onSubmit={handleLogin}>
-              <div className="input-group">
-                <input
-                  className="text-input"
-                  type="text"
-                  placeholder="Username"
-                  value={loginUser}
-                  onChange={(e) => setLoginUser(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div className="input-group">
-                <input
-                  className="text-input"
-                  type="password"
-                  placeholder="Password"
-                  value={loginPass}
-                  onChange={(e) => setLoginPass(e.target.value)}
-                />
-              </div>
-              <button
-                className="btn btn-primary"
-                type="submit"
-                disabled={loginLoading || !loginUser || !loginPass}
-                style={{ width: "100%" }}
-              >
-                {loginLoading ? <span className="spinner" /> : "Log In"}
-              </button>
-            </form>
-
-            <div className="login-divider">or</div>
-
-            <button
-              className="btn btn-surface"
-              onClick={enterGuest}
-              style={{ width: "100%" }}
-            >
-              Continue as Guest
-            </button>
-          </div>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: getStyles() }} />
@@ -1083,17 +977,6 @@ export default function Home() {
       <header className="app-header">
         <div className="app-title">
           Japanese <span>文法</span> Buddy
-        </div>
-        <div className="header-actions">
-          {user && user !== "guest" && (
-            <span className="user-badge">{user}</span>
-          )}
-          {user === "guest" && (
-            <span className="user-badge">guest</span>
-          )}
-          <button className="btn btn-ghost btn-icon" onClick={handleLogout} title="Log out">
-            <Icon.LogOut />
-          </button>
         </div>
       </header>
 
@@ -1150,15 +1033,13 @@ export default function Home() {
                 style={{ display: "none" }}
                 onChange={handleScreenshot}
               />
-              {user !== "guest" && (
-                <button
+              <button
                   className="btn btn-surface btn-icon"
                   onClick={toggleSaved}
                   title="Saved phrases"
                 >
                   <Icon.Clock />
                 </button>
-              )}
             </div>
 
             {/* Screenshot phrases */}
@@ -1180,7 +1061,7 @@ export default function Home() {
             )}
 
             {/* Saved phrases panel */}
-            {showSaved && user !== "guest" && (
+            {showSaved && (
               <div className="saved-panel" style={{ marginTop: 16 }}>
                 <div className="saved-panel-header">
                   <span>Saved Phrases ({savedPhrases.length})</span>
@@ -1249,8 +1130,7 @@ export default function Home() {
                   >
                     <Icon.Play /> {isPlaying ? "Playing..." : "Listen"}
                   </button>
-                  {user !== "guest" && (
-                    <button
+                  <button
                       className="btn btn-surface btn-small"
                       onClick={savePhrase}
                       disabled={isSaved}
@@ -1265,7 +1145,6 @@ export default function Home() {
                         </>
                       )}
                     </button>
-                  )}
                 </div>
               </div>
             )}
