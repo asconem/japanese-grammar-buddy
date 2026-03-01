@@ -11,7 +11,7 @@ export async function POST(req) {
     }
 
     const msg = await client.messages.create({
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 1500,
       system: `You are a Japanese language analysis tool. Break down the given Japanese sentence into its individual morphemes/words.
 

@@ -14,7 +14,7 @@ export async function POST(req) {
     const type = validTypes.includes(mediaType) ? mediaType : "image/png";
 
     const msg = await client.messages.create({
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 1000,
       messages: [
         {
